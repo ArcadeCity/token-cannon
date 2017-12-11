@@ -26,18 +26,18 @@ export class API {
       .join('&');
 
     const url = this.baseURL + "?" + query;
-    console.log('etherscan makeRequest calling:', url);
+    // console.log('etherscan makeRequest calling:', url);
     const response = await fetch(url);
-    console.log('etherscan makeRequest raw response:', response);
+    // console.log('etherscan makeRequest raw response:', response);
     const data = await response.json();
-    console.log('etherscan makeRequest raw json:', data);
+    // console.log('etherscan makeRequest raw json:', data);
 
     if (data.error) {
       // {"jsonrpc":"2.0","error":{"code":-32010,"message":"Insufficient funds. Account you try to send transaction from does not have enough funds. Required 62914560000000000 and got: 37085440000000000.","data":null},"id":1}
       throw new APIError(data.error.message);
     }
 
-    console.log("API result", data);
+    // console.log("API result", data);
     return data.result;
   }
 
