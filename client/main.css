@@ -1,1 +1,23 @@
-/* CSS declarations go here */
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: #190529;
+  color: white;
+  margin: 40px 0;
+}
+
+p {
+  color: #cfd2da;
+}
+
+.mp-refinput {
+  max-width: 300px;
+}
+
+.mp-ethinput {
+  max-width: 600px;
+}
+
+#login-buttons .login-display-name {
+  font-family: 'Open Sans', sans-serif;
+  color: white;
+}
