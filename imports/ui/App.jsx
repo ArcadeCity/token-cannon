@@ -38,12 +38,26 @@ class App extends Component {
     return localWeb3.eth.fromWei(value)
   }
 
+
   async loadTargets() {
-    console.log('Loading targets...')
-    transactions = await grabTransactionsForAddress('0x7ef8873220958ea400d505a9c92d6ae24f34d55e')
-    console.log('Transactions:', transactions)
-    this.setState({transactions});
+
+    try {
+      // await Meteor.callPromise('transactions.loadTargets', '0x7ef8873220958ea400d505a9c92d6ae24f34d55e');
+      Meteor.call('transactions.loadTargets', '0x7ef8873220958ea400d505a9c92d6ae24f34d55e')
+    } catch (error) {
+      console.error('Error loading targets', error);
+    }
+
   }
+
+
+  //
+  // async loadTargetsOld() {
+  //   console.log('Loading targets...')
+  //   transactions = await grabTransactionsForAddress('0x7ef8873220958ea400d505a9c92d6ae24f34d55e')
+  //   console.log('Transactions:', transactions)
+  //   this.setState({transactions});
+  // }
 
   async componentWillReceiveProps() {
     // Load user's eth balance

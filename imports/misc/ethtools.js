@@ -1,72 +1,13 @@
-import settings from '../../settings.json';
+import settings from '../../settings.json'
 
-import Web3 from 'web3';
-import { API } from './etherscan';
-import { buildTx } from "./txbuilder";
+import Web3 from 'web3'
+import { API } from './etherscan'
+import { buildTx } from "./txbuilder"
+import { Meteor } from 'meteor/meteor'
 
 const ethNetwork = settings.eth.network,
   ethSettings = settings.eth[ethNetwork],
   api = new API(ethSettings.etherscanApiUrl, ethSettings.etherscanApiKey);
-
-// https://ethereum.stackexchange.com/questions/2531/common-useful-javascript-snippets-for-geth/3478#3478
-export async function grabTransactionsForAddress (myaccount) {
-  console.log('Grabbing transactions for address ' + myaccount)
-
-  web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/" + ethSettings.infuraKey)); //
-  // web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-
-  console.log(web3)
-  console.log('Current block number is: ' + web3.eth.blockNumber)
-
-  if (web3.eth.blockNumber == 0) {
-    console.log('eh zero')
-    console.log(web3.eth.syncing)
-    // console.log(web3.eth.debug.traceTransaction('0xed3b42563b70d1237a98f5c652a7b3befabbd4d2b29abb3d422398eabd504179'))
-    return
-  }
-
-  transactions = []
-
-  endBlockNumber = 4646466
-  startBlockNumber = 4646284
-  console.log("Using startBlockNumber: " + startBlockNumber);
-  console.log("Using endBlockNumber: " + endBlockNumber);
-
-  console.log("Searching for transactions to/from account \"" + myaccount + "\" within blocks "  + startBlockNumber + " and " + endBlockNumber);
-
-  for (var i = startBlockNumber; i <= endBlockNumber; i++) {
-    console.log(i)
-    if (i !== 4646464 && i !== 4646284) // just query 2 specific blocks for demo purposes now so we avoid infura rate-limiting
-      continue
-    console.log("Searching block " + i);
-    var block = web3.eth.getBlock(i, true);
-    if (block != null && block.transactions != null) {
-      // console.log('block.transactions:', block.transactions)
-      block.transactions.forEach( function(e) {
-        if (myaccount == "*" || myaccount == e.from || myaccount == e.to) {
-          console.log('------')
-          transactions.push(e)
-          console.log(e)
-          console.log("  tx hash          : " + e.hash + "\n"
-            + "   nonce           : " + e.nonce + "\n"
-            + "   blockHash       : " + e.blockHash + "\n"
-            + "   blockNumber     : " + e.blockNumber + "\n"
-            + "   transactionIndex: " + e.transactionIndex + "\n"
-            + "   from            : " + e.from + "\n"
-            + "   to              : " + e.to + "\n"
-            + "   value           : " + e.value + "\n"
-            + "   time            : " + block.timestamp + " " + new Date(block.timestamp * 1000).toGMTString() + "\n"
-            + "   gasPrice        : " + e.gasPrice + "\n"
-            + "   gas             : " + e.gas + "\n"
-            + "   input           : " + e.input);
-          console.log('------------------')
-        }
-      })
-    }
-  }
-
-  return transactions
-}
 
 export async function fetchAddressBalance (address) {
   console.log("Attempting to fetch ether balance for address:", address);
