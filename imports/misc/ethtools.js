@@ -5,9 +5,32 @@ import { API } from './etherscan'
 import { buildTx } from "./txbuilder"
 import { Meteor } from 'meteor/meteor'
 
+export const TOKEN_ABI = [{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"}];
+
+export const TOKEN_ADDRESS = "0xb581e3a7db80fbaa821ab39342e9cbfd2ce33c23";
+
+export const CROWDSALE_ADDRESS = "0x7ef8873220958ea400d505a9c92d6ae24f34d55e";
+
+
 const ethNetwork = settings.eth.network,
   ethSettings = settings.eth[ethNetwork],
   api = new API(ethSettings.etherscanApiUrl, ethSettings.etherscanApiKey);
+
+export async function grabTokenInfo() {
+  var token = web3.eth.contract(TOKEN_ABI).at(TOKEN_ADDRESS);
+  token.decimals(function(error, decimals) {
+    token.totalSupply(function(error, totalSupply) {
+      let divisor = new web3.BigNumber(10).toPower(decimals);
+      let totalARCDSupply = totalSupply.div(divisor)
+      let initialMint = 9200000000;
+      let raisedARCDSupply = (totalARCDSupply - initialMint);
+      let exchangeRate = 200000;
+      let raisedETH = raisedARCDSupply / exchangeRate;
+      console.log('ARCD Minted: ' + raisedARCDSupply.toLocaleString())
+      console.log('ETH Raised: ' + raisedETH.toLocaleString())
+    })
+  })
+}
 
 export async function fetchAddressBalance (address) {
   console.log("Attempting to fetch ether balance for address:", address);

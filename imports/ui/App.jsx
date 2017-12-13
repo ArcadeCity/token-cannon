@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom'
 import PropTypes from 'prop-types'
 import { Meteor } from 'meteor/meteor'
 import Web3 from 'web3'
+import { withTracker } from 'meteor/react-meteor-data'
 
-import { isAddress, getEthUsd, fetchAddressBalance, grabTransactionsForAddress } from '../misc/ethtools'
+import { Transactions } from '../api/transactions'
+import { TOKEN_ABI, TOKEN_ADDRESS, CROWDSALE_ADDRESS, isAddress, getEthUsd, fetchAddressBalance, grabTransactionsForAddress, grabTokenInfo } from '../misc/ethtools'
 import settings from '../../settings.json'
 
-// App component - represents the whole app
+let abi = require('human-standard-token-abi')
+
 class App extends Component {
   constructor(props) {
     super(props)
@@ -23,11 +26,12 @@ class App extends Component {
     EthTools.setUnit('ether');
     let ethPrice;
 
-    // Load eth price
+    // Load eth price and ARCD token info for shits and giggles
     try {
       ethPrice = await getEthUsd();
       console.log('Got ethPrice:', ethPrice);
       this.setState({ethPrice});
+      grabTokenInfo()
     } catch (error) {
       console.error('Error fetching ethPrice:', error);
     }
@@ -39,25 +43,38 @@ class App extends Component {
   }
 
 
-  async loadTargets() {
-
-    try {
-      // await Meteor.callPromise('transactions.loadTargets', '0x7ef8873220958ea400d505a9c92d6ae24f34d55e');
-      Meteor.call('transactions.loadTargets', '0x7ef8873220958ea400d505a9c92d6ae24f34d55e')
-    } catch (error) {
-      console.error('Error loading targets', error);
-    }
-
+  loadTargets() {
+    Meteor.call('transactions.loadTargets', CROWDSALE_ADDRESS) // 0x7ef8873220958ea400d505a9c92d6ae24f34d55e
   }
 
+  sendTransaction(tx) {
+    console.log('From transaction ', tx)
+    let arcdToSend = parseInt(tx.value.c[0]) / 10000 * 85000
+    let arcdToReallySend = arcdToSend * 1000000000000000000
+    console.log('Sending ' + arcdToSend + ' ARCD to ' + tx.from + ' --- ' + arcdToReallySend)
+    let token = web3.eth.contract(abi).at(TOKEN_ADDRESS)
+    console.log('token hm:', token)
 
-  //
-  // async loadTargetsOld() {
-  //   console.log('Loading targets...')
-  //   transactions = await grabTransactionsForAddress('0x7ef8873220958ea400d505a9c92d6ae24f34d55e')
-  //   console.log('Transactions:', transactions)
-  //   this.setState({transactions});
-  // }
+    token.transfer(tx.from, arcdToReallySend, function (error, result) {
+      if(!error) {
+        console.log(result)
+        Meteor.call('transactions.updateTx', tx, result)
+      } else {
+        console.log('error! :):):):(:(:(')
+        console.error(error);
+      }
+
+    })
+
+    //
+    // web3.eth.sendTransaction({
+    //   from: web3.eth.accounts[0],
+    //   value: arcdToSend,
+    //   to: tx.from,
+    //   gas: '60000',
+    //   data: null,
+    // }, function(error, response) {})
+  }
 
   async componentWillReceiveProps() {
     // Load user's eth balance
@@ -93,8 +110,9 @@ class App extends Component {
   }
 
   render() {
-    console.log(this.state)
-    // console.log('Address:', this.readWeb3WalletAddress())
+    console.log('State: ', this.state)
+    console.log('Props: ', this.props)
+
     // Must already be running inside an ETH browser such as Metamask.
     if (typeof web3 === 'undefined') {
       return (
@@ -125,7 +143,7 @@ class App extends Component {
             <h2 style={{marginBottom: '25px'}}>Token Cannon</h2>
             <p>Sends Arcade Tokens (ARCD) to a list of target Ethereum addresses.</p>
             <p>Currently targets purchaser addresses from the <a href="https://etherscan.io/address/0x7ef8873220958ea400d505a9c92d6ae24f34d55e" target="_blank">Arcade City token sale contract</a>.</p>
-            {!this.state.transactions ? (
+            {!this.props.txs ? (
               <button
                 onClick={this.loadTargets.bind(this)}
                 type="button"
@@ -133,21 +151,36 @@ class App extends Component {
                 className="btn btn-lg btn-primary">Load Targets</button>
             ) : (
               <div style={{margin: '40px 0 20px'}}>
+
+                <button
+                  onClick={this.loadTargets.bind(this)}
+                  type="button"
+                  style={{marginTop: '30px'}}
+                  className="btn btn-lg btn-primary">Load More Targets</button>
+
+                <hr />
+
                 <h4 style={{marginBottom: '20px'}}>Pending Bonuses</h4>
-                {transactions.map((t, n) => (
+                {this.props.txs.map((t, n) => (
                   <div key={n}>
                     <p>
                       TxID: <a href={`https://etherscan.io/tx/${t.hash}`} target="_blank">{t.hash}</a>
                       <br />
-                      Amount: {web3.fromWei(parseInt(t.value))} ETH
+                      Amount: {parseInt(t.value.c[0]) / 10000} ETH
                       <br />
                       From: {t.from}
                       <br />
-                      <button
-                        onClick={this.loadTargets.bind(this)}
-                        type="button"
-                        style={{marginTop: '15px'}}
-                        className="btn btn-primary">Send {web3.fromWei(parseInt(t.value)) * 85000} ARCD</button>
+                      BlockNumber: {t.blockNumber}
+                      <br />
+                      {t.status === 'sent' ? (
+                        <p style={{color: 'green', fontWeight: 'bold', fontSize: '16px'}}>SENT!</p>
+                      ) : (
+                        <button
+                          onClick={() => this.sendTransaction(t)}
+                          type="button"
+                          style={{marginTop: '15px'}}
+                          className="btn btn-primary">Send {parseInt(t.value.c[0]) / 10000 * 85000} ARCD</button>
+                        )}
                     </p>
                     <hr />
                   </div>
@@ -162,4 +195,10 @@ class App extends Component {
   }
 }
 
-export default App
+export default withTracker(props => {
+  Meteor.subscribe('transactions');
+
+  return {
+    txs: Transactions.find().fetch(),
+  };
+})(App)
